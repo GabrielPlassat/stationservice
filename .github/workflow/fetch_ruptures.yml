@@ -1,1 +1,39 @@
+name: Collecte ruptures carburants
 
+on:
+  schedule:
+    # Toutes les heures (minute 0)
+    - cron: "0 * * * *"
+  workflow_dispatch:  # Permet de lancer manuellement depuis l'interface GitHub
+
+jobs:
+  fetch-and-commit:
+    runs-on: ubuntu-latest
+
+    # Donne les droits d'écriture au workflow pour committer le CSV
+    permissions:
+      contents: write
+
+    steps:
+      - name: 📥 Récupérer le repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Installer Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Installer les dépendances
+        run: pip install requests pandas
+
+      - name: 🚀 Lancer le script de collecte
+        run: python fetch_ruptures.py
+
+      - name: 💾 Committer et pousser le CSV mis à jour
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/historique_ruptures.csv
+          # Ne committe que s'il y a des changements
+          git diff --staged --quiet || git commit -m "📊 Mise à jour ruptures — $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push
